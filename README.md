@@ -55,6 +55,10 @@ cd my-workspace
 2. **Open the directory in your runtime.** The runtime picks up its native entry file from the table above and the agent reads `PROTOCOL.md` + `auth-policy.md` on first message.
 3. **Send your first message.** The agent will create `~/projects/_admin/`, scan for in-flight authorization requests (none on first run), and wait for inbound work.
 
+### Caveats
+
+- **`bun` must be on `PATH` if you use the Claude Code Telegram plugin** (`claude-plugins-official/telegram`) for inbound channel messages. The plugin's MCP server is launched via `bun run …` from its `.mcp.json`; if `bun` is not installed, the harness reports "1 plugin MCP server reloaded" but the server silently fails to start, so DMs to your bot get no reply and `/telegram:configure` shows the token as set even though nothing is polling. Install bun (`curl -fsSL https://bun.sh/install | bash`), restart your Claude Code session, then DM the bot to receive a pairing code. The protocol itself does not depend on bun — this is only a gotcha for the optional Telegram channel.
+
 ## Project layout (after the agent has run)
 
 The agent stores runtime state at `~/projects/`, separate from this protocol repo:
