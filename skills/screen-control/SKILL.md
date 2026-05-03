@@ -63,6 +63,8 @@ The orchestrator may issue `/clear` or `/compact` against its own active Claude 
 
 This was previously banned in an older CLAUDE.md but is now explicitly allowed (admin authorized 2026-05-01).
 
+**Linux/tmux runtimes**: see sister skill `terminal-self/SKILL.md`. Same intent, different mechanism (`tmux send-keys` instead of cliclick), and adds a cron-driven channel-reconnect path that doesn't exist on Mac.
+
 ## External-agent dispatch entry
 
 When `dispatch-external-agent` calls into screen-control to feed a target AI:
