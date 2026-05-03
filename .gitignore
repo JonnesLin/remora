@@ -1,0 +1,31 @@
+# Local runtime config / cache (varies by runtime)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/.history/
+.aider.tags.cache.v3/
+.aider.chat.history.md
+.continue/index/
+
+# In case the operator co-locates runtime state with the protocol repo
+# (default is ~/projects/, but some setups put it inside the workspace)
+_admin/
+projects/
+tasks/
+PROGRESS.md
+WORKING_MEMORY.md
+memory/
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+Thumbs.db
+
+# Common dependency / cache dirs that adjacent tooling might create
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+.env
