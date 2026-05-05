@@ -89,14 +89,14 @@ Default to the Agent tool. Reach for [`skills/dispatch-external-agent/SKILL.md`]
 
 The protocol is markdown-only: orchestrator writes `tasks/<id>/prompt.md`, screen-control launches the target and points it at the file, target writes `tasks/<id>/result.md`, orchestrator picks up the result lazily on next inbound message (or via cron once that's wired). See that SKILL.md for the full protocol.
 
-### When to use screen-control (narrow — GUI work goes through Codex Desktop)
+### When the orchestrator drives its own UI (narrow — GUI work goes through Codex Desktop)
 
-The orchestrator **does not drive GUI directly**. GUI tasks dispatch to Codex Desktop (which has the computer-use plugin) via dispatch-external-agent. The orchestrator using `cliclick` / `screencapture` / `osascript` from its own session is reserved for cases Codex Desktop literally cannot do, of which there are essentially two:
+The orchestrator **does not drive GUI directly**. GUI tasks dispatch to Codex Desktop (which has the computer-use plugin) via dispatch-external-agent. The orchestrator driving its own UI is reserved for cases Codex Desktop literally cannot do, of which there are essentially two:
 
-1. **Self-`/clear` / `/compact` on the orchestrator's own terminal** — Codex Desktop cannot drive the Terminal session that's running the orchestrator (it would interfere with itself), so the orchestrator types these directly via `cliclick` when the admin approves.
-2. **Spawning Codex Desktop itself** — the bootstrap step (`codex app /path/to/task/dir/` + the keystroke recipe to paste prompt + Cmd+Enter) is by definition a chicken-and-egg case: you can't dispatch to Codex Desktop to start Codex Desktop. After Codex Desktop is up, hand off the rest of the GUI work via prompt.md.
+1. **Self-`/clear` / `/compact` on the orchestrator's own terminal** — Codex Desktop cannot drive the Terminal session that's running the orchestrator (it would interfere with itself). The orchestrator types these directly via [`skills/terminal-self/SKILL.md`](./skills/terminal-self/SKILL.md) (`tmux send-keys`). Works on Linux and Mac as long as the orchestrator was launched inside a tmux pane (the recommended setup on every host).
+2. **Spawning Codex Desktop itself** — the bootstrap step (`codex app /path/to/task/dir/` + the keystroke recipe to paste prompt + Cmd+Enter) is by definition a chicken-and-egg case: you can't dispatch to Codex Desktop to start Codex Desktop. This is Mac-only and uses [`skills/screen-control/SKILL.md`](./skills/screen-control/SKILL.md) (cliclick + screencapture). After Codex Desktop is up, hand off the rest of the GUI work via prompt.md.
 
-Everything else — clicking through OAuth, dismissing dialogs, navigating Safari, running /mcp menus, long-tail one-off GUI flows — goes into a `tasks/<id>/prompt.md` for Codex Desktop. See [`skills/screen-control/SKILL.md`](./skills/screen-control/SKILL.md) for the residual orchestrator-direct recipes (self-/clear, Codex Desktop bootstrap) and [`skills/dispatch-external-agent/SKILL.md`](./skills/dispatch-external-agent/SKILL.md) for the codex-desktop adapter notes that handle GUI tasks.
+Everything else — clicking through OAuth, dismissing dialogs, navigating Safari, running /mcp menus, long-tail one-off GUI flows — goes into a `tasks/<id>/prompt.md` for Codex Desktop. See [`skills/dispatch-external-agent/SKILL.md`](./skills/dispatch-external-agent/SKILL.md) for the codex-desktop adapter notes that handle GUI tasks.
 
 screen-control is **not** used to scrape external agent output. Markdown-only handoff.
 
@@ -227,7 +227,8 @@ Triggers:
 
 | Skill | Purpose |
 |---|---|
-| [`screen-control`](./skills/screen-control/SKILL.md) | drive Mac GUI; self-/clear (admin-triggered); external-agent spawn entry |
+| [`terminal-self`](./skills/terminal-self/SKILL.md) | self-`/clear` / `/compact` via `tmux send-keys` (any OS, orchestrator-in-tmux); cron-driven Telegram channel reconnect |
+| [`screen-control`](./skills/screen-control/SKILL.md) | Mac GUI bootstrap (Codex Desktop spawn). Mac-only; cliclick + screencapture |
 | [`workspace-memory`](./skills/workspace-memory/SKILL.md) | per-project memory layout, bootstrap, atomic writes, awaiting_clarification |
 | [`project-intake`](./skills/project-intake/SKILL.md) | classify and file inbound material |
 | [`dispatch-external-agent`](./skills/dispatch-external-agent/SKILL.md) | markdown-protocol handoff to Codex / DeepSeek / etc. |

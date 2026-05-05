@@ -68,7 +68,7 @@ Admin manages this file directly (or via an admin-triggered agent task to add an
 - Modifying access policies, the friends allowlist (`_admin/friends.json`), the admin handle list, or any auth/identity configuration
 - Spawning long-lived workers, scheduled jobs, or autonomous loops
 - Approving security / permission prompts that appear during automation
-- Driving `/clear` or `/compact` on the orchestrator's terminal
+- Driving `/clear` or `/compact` on the orchestrator's terminal (mechanism: [`skills/terminal-self/SKILL.md`](./skills/terminal-self/SKILL.md) via `tmux send-keys`, any OS)
 - Reading anything in `~/projects/_admin/` (even by admin friends)
 - Reading anything explicitly tagged private (frontmatter `private: true` on a file)
 

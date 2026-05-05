@@ -1,19 +1,19 @@
 ---
 name: terminal-self
-description: Drive the orchestrator's own terminal on Linux/tmux runtimes — issue `/clear`, `/compact`, or reconnect a dead channel without leaving the session. Linux/tmux equivalent of `screen-control`'s self-`/clear` section. Use when the orchestrator needs to reset its own context, compact mid-session, or recover from a dropped MCP-channel connection. Requires the orchestrator to be running inside a tmux pane.
+description: Drive the orchestrator's own terminal via `tmux send-keys` — issue `/clear`, `/compact`, or reconnect a dead channel without leaving the session. Works on any OS as long as the orchestrator runs inside a tmux pane (Linux, Mac with tmux, etc.). Use when the orchestrator needs to reset its own context, compact mid-session, or recover from a dropped MCP-channel connection.
 ---
 
 # terminal-self
 
-Drive the orchestrator's own Claude Code terminal on Linux. Sister skill to `screen-control` — same intent (orchestrator must be able to operate its own UI, since no external agent can drive the session that *is* the orchestrator), different mechanism (tmux send-keys, no GUI).
+Drive the orchestrator's own Claude Code terminal via `tmux send-keys`. The orchestrator must be able to operate its own UI — no external agent can drive the session that *is* the orchestrator. This is the canonical skill for self-`/clear` and self-`/compact` on **both Linux and Mac**, as long as the orchestrator is launched inside a tmux pane (recommended setup on every host).
+
+For Mac runtimes that are *not* inside tmux and need GUI-level driving (cliclick), see `screen-control/SKILL.md` — but prefer running inside tmux and using this skill.
 
 ## When to use
 
 - **Self-`/clear`** (admin-commanded): admin asks the orchestrator to clear its own context. Required before long-lived loops where you don't want trailing context.
 - **Self-`/compact`** (admin-commanded): admin asks the orchestrator to compact mid-session.
 - **Channel reconnect** (cron-driven): the telegram channel's `bun server.ts` has died (or its API is unreachable) and Claude Code did not auto-respawn it.
-
-For Mac/cliclick runtimes, see `screen-control/SKILL.md` § "Self-`/clear` / `/compact`". The two skills coexist — pick the one that matches the orchestrator's runtime.
 
 ## Mechanism — `tmux send-keys` to your own pane
 
