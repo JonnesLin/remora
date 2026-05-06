@@ -161,12 +161,60 @@ Spawning an external agent is sometimes a **sensitive operation** — it consume
 
 These are short notes on how to invoke specific external agents. Each target has its own quirks; capture them here once we've actually run the target end-to-end.
 
-### codex (OpenAI Codex CLI)
+### codex (via codex-plugin-cc companion script)
 
-- **Default invocation (admin authorized full permissions 2026-05-01)**: `codex exec --skip-git-repo-check --full-auto "<prompt>" < /dev/null`
-  - `--full-auto` = convenience alias for low-friction sandboxed automatic execution (workspace-write sandbox + auto-approve tool calls). This is the default for the operator's super-agent because it removes the per-task `--sandbox` guesswork.
-  - For tasks that need to touch files outside the task dir or run network commands, escalate to `--dangerously-bypass-approvals-and-sandbox` — but that requires per-task admin authorization (it's an "always sensitive" operation per auth-policy.md).
-- **Why `--skip-git-repo-check`**: codex defaults to refusing to run outside a "trusted" (git-tracked) directory. Our task dirs aren't git repos.
-- **Why `< /dev/null`**: without an explicit stdin redirect, `codex exec` prints "Reading additional input from stdin..." and waits.
-- **Login**: `codex login status` to verify; `codex login` (interactive) to authenticate via ChatGPT.
-- **Verified end-to-end 2026-05-01** on a buggy.py review task. The first run failed with `--sandbox` default (read-only blocks result.md write); fixed with `--sandbox workspace-write`; admin then upgraded to `--full-auto` as the new default to remove that friction for future tasks.
+Preferred invocation uses `codex-companion.mjs` from the `openai/codex-plugin-cc` Claude Code plugin. It wraps the Codex CLI with job tracking, background execution, and result retrieval — cleaner than raw `codex exec`.
+
+**Installed paths (verified 2026-05-06):**
+- Companion script: `/home/remora/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs`
+- Codex CLI: `/home/remora/.npm-global/bin/codex` (v0.128.0)
+- After plugin version updates, re-derive with: `find ~/.claude/plugins/cache/openai-codex -name "codex-companion.mjs" | sort -V | tail -1`
+
+**IMPORTANT — PATH requirement**: The companion script must be run with `/home/remora/.npm-global/bin` in PATH, otherwise it reports codex as "not found". Always prefix:
+```bash
+export CODEX_COMPANION="/home/remora/.claude/plugins/cache/openai-codex/codex/1.0.4/scripts/codex-companion.mjs"
+export PATH="/home/remora/.npm-global/bin:$PATH"
+```
+
+**Spawn (background task):**
+```bash
+JOB_ID=$(PATH="/home/remora/.npm-global/bin:$PATH" node "$CODEX_COMPANION" task --background --json --write "$(cat tasks/<id>/prompt.md)" | jq -r '.id')
+# Store JOB_ID in state.json alongside the task id for reconciliation
+```
+- Use `--write` for implementation/execution tasks (allows Codex to edit files in cwd).
+- Omit `--write` for review/analysis tasks (read-only).
+- `--json` returns machine-readable output including the job ID.
+
+**Reconcile (check completion):**
+```bash
+STATUS=$(PATH="/home/remora/.npm-global/bin:$PATH" node "$CODEX_COMPANION" status "$JOB_ID" --json | jq -r '.status')
+# status values: running | completed | failed | cancelled
+```
+
+**Read result and write to result.md:**
+```bash
+if [ "$STATUS" = "completed" ]; then
+  OUTPUT=$(PATH="/home/remora/.npm-global/bin:$PATH" node "$CODEX_COMPANION" result "$JOB_ID")
+  printf -- "---\ntask_id: <id>\ncompleted: $(date -u +%Y-%m-%dT%H:%M:%SZ)\nstatus: ok\ntarget: codex\n---\n\n%s" "$OUTPUT" > tasks/<id>/result.md
+elif [ "$STATUS" = "failed" ]; then
+  # Write failed result.md
+fi
+```
+
+**Cancel:**
+```bash
+PATH="/home/remora/.npm-global/bin:$PATH" node "$CODEX_COMPANION" cancel "$JOB_ID"
+```
+
+**Review tasks (code review, no file writes):**
+```bash
+PATH="/home/remora/.npm-global/bin:$PATH" node "$CODEX_COMPANION" review --wait
+# adversarial:
+PATH="/home/remora/.npm-global/bin:$PATH" node "$CODEX_COMPANION" adversarial-review --wait
+```
+
+**Login**: `PATH="/home/remora/.npm-global/bin:$PATH" codex login` (interactive, ChatGPT or API key). Verify with `codex login status`.
+
+**Fallback (no plugin available):** `codex exec --skip-git-repo-check --full-auto "$(cat tasks/<id>/prompt.md)" < /dev/null` — original approach, still works but no job tracking.
+
+**Verified end-to-end 2026-05-01** (fallback method) on a buggy.py review task. Plugin-based approach pending first run after install.
