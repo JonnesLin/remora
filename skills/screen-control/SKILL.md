@@ -1,6 +1,6 @@
 ---
 name: screen-control
-description: Drive the operator's Mac GUI on his behalf — take a screenshot, look at it, click/type, verify. Use when the orchestrator needs to (a) bootstrap an external AI agent (Codex Desktop) via its UI, or (b) operate a Mac-only GUI/terminal action that has no programmatic API and cannot be reached via tmux. Mac-only; relies on cliclick + screencapture + osascript. Self-`/clear` and self-`/compact` are NOT in this skill — see `terminal-self/SKILL.md`.
+description: Drive the operator's Mac GUI on his behalf — take a screenshot, look at it, click/type, verify. Use when the orchestrator needs to (a) trigger /clear or /compact in its own terminal, (b) spawn or feed an external AI agent (Codex / DeepSeek / Cursor / browser-based ChatGPT etc.) via its UI, or (c) operate any GUI/terminal action that has no programmatic API. Mac-only; relies on cliclick + screencapture + osascript.
 ---
 
 # screen-control
@@ -9,15 +9,14 @@ Drive the operator's Mac GUI on his behalf — take a screenshot, look at it, cl
 
 ## Role in the super-agent (narrow — GUI work goes to Codex Desktop)
 
-The orchestrator **does not drive GUI directly**. GUI tasks dispatch to Codex Desktop (which has computer-use tooling) via `dispatch-external-agent`. The orchestrator's direct use of `cliclick` / `screencapture` / `osascript` is reserved for one irreducible chicken-and-egg case:
+The orchestrator **does not drive GUI directly**. GUI tasks dispatch to Codex Desktop (which has computer-use tooling) via `dispatch-external-agent`. The orchestrator's direct use of `cliclick` / `screencapture` / `osascript` is reserved for the irreducible chicken-and-egg cases:
 
-1. **Bootstrap of Codex Desktop itself** — to dispatch to Codex Desktop, something has to launch it and paste the prompt. That something is the orchestrator (one-time per session, then handoff). The recipe lives in the Coord Cache section below.
+1. **Self-`/clear` / `/compact` on the orchestrator's own terminal** — Codex Desktop cannot drive the Terminal session that's *running* the orchestrator (the agent and the controller would be the same process). The orchestrator types these directly via `cliclick` when the admin approves the operation.
+2. **Bootstrap of Codex Desktop itself** — to dispatch to Codex Desktop, something has to launch it and paste the prompt. That something is the orchestrator (one-time per session, then handoff). The recipe lives in the Coord Cache section below.
 
-Self-`/clear` and self-`/compact` used to live here too, but are now owned by [`terminal-self/SKILL.md`](../terminal-self/SKILL.md) — `tmux send-keys` works on Mac and Linux alike, so a single skill covers both. Run the orchestrator inside a tmux pane and use terminal-self.
+That's it. Long-tail GUI ("click through a dialog", "drive Safari OAuth", "run /mcp on a Terminal", "navigate a setup wizard") belongs in a `tasks/<id>/prompt.md` for Codex Desktop. See `dispatch-external-agent/SKILL.md` §"Per-target adapter notes — codex-desktop". Don't expand this skill for new GUI workflows; expand the codex-desktop adapter instead.
 
-Long-tail GUI ("click through a dialog", "drive Safari OAuth", "run /mcp on a Terminal", "navigate a setup wizard") belongs in a `tasks/<id>/prompt.md` for Codex Desktop. See `dispatch-external-agent/SKILL.md` §"Per-target adapter notes — codex-desktop". Don't expand this skill for new GUI workflows; expand the codex-desktop adapter instead.
-
-Everything below is the operating manual for Codex Desktop bootstrap.
+Everything below is the operating manual for the two uses above.
 
 ## Tools
 
@@ -53,9 +52,18 @@ If you misread the displayed image dims (the Read tool may resize), use `sips -g
 4. `cliclick c:X,Y` (click), or `t:"..."` (type), `kp:return` (Enter).
 5. Re-screenshot. Verify the click did what you expected — don't assume.
 
-## Self-`/clear` / `/compact`
+## Self-`/clear` / `/compact` (authorized)
 
-Moved to [`terminal-self/SKILL.md`](../terminal-self/SKILL.md). Run the orchestrator inside tmux and use `tmux send-keys` — works on Mac and Linux alike. Don't add a cliclick fallback here unless a real Mac-without-tmux runtime appears.
+The orchestrator may issue `/clear` or `/compact` against its own active Claude Code terminal. The procedure:
+
+1. Make sure all in-flight state is persisted to disk: `PROGRESS.md`, `tasks/<id>/state.json` and any `pending_question.md`, and — critically — every outstanding orchestrator obligation in `~/projects/_admin/pending/` (auth deadlines, ETAs given to non-admins, "I'll get back to you" promises). Anything that lives only in conversation context is lost. See PROTOCOL.md §0 (cold start) and CLAUDE.md "Persisting before promising" for the rule.
+2. Focus the orchestrator's terminal window.
+3. `cliclick t:"/clear"` then `kp:return` (or `/compact`).
+4. After clear, the next inbound message will reload `CLAUDE.md` → `PROTOCOL.md` and pick up state from the on-disk files.
+
+This was previously banned in an older CLAUDE.md but is now explicitly allowed (admin authorized 2026-05-01).
+
+**Linux/tmux runtimes**: see sister skill `terminal-self/SKILL.md`. Same intent, different mechanism (`tmux send-keys` instead of cliclick), and adds a cron-driven channel-reconnect path that doesn't exist on Mac.
 
 ## External-agent dispatch entry
 
