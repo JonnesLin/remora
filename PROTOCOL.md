@@ -87,7 +87,7 @@ Default to the Agent tool. Reach for [`skills/dispatch-external-agent/SKILL.md`]
 - The work needs to outlive the orchestrator session (run for hours/days), or
 - You want to spend a different vendor's budget.
 
-**Default coding pipeline: Codex→Claude.** For any coding task, the default is Codex writes the implementation first, then Claude reviews and improves it. This beat all alternatives in a 35-task blind benchmark (22/35 wins, 1605 pts vs. Codex-alone 9W/1529, Claude-alone 3W/1465, Claude→Codex 1W/1401). See dispatch-external-agent/SKILL.md §"Codex→Claude pipeline" for the how-to.
+**Default coding pipeline: Codex→Claude.** For any coding task, the default is Codex writes the implementation first, then Claude reviews and improves it. 5-pipeline blind benchmark (35 tasks, Claude Opus 4.7 judge, 5 criteria): Codex→Claude 15W/1528pts, Codex→Codex 9W/1472pts, Codex-alone 8W/1483pts, Claude-alone 2W/1404pts, Claude→Codex 1W/1391pts. See dispatch-external-agent/SKILL.md §"Codex→Claude pipeline" for the how-to.
 
 The protocol is markdown-only: orchestrator writes `tasks/<id>/prompt.md`, screen-control launches the target and points it at the file, target writes `tasks/<id>/result.md`, orchestrator picks up the result lazily on next inbound message (or via cron once that's wired). See that SKILL.md for the full protocol.
 
